@@ -1,0 +1,14 @@
+default:
+  suites:
+    first_suite:
+        paths: [ '%paths.base%/features/' ]
+        contexts:
+          - FeatureContext:
+              - '{"MAIN":{"host":"127.0.0.1","port":"3306","dbname":"example_app"},"DB":'
+          - Behat\MinkExtension\Context\MinkContext:
+  extensions:
+    Behat\MinkExtension:
+      base_url: 'http://localhost'
+      sessions:
+        default:
+          selenium2:
