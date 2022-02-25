@@ -26,14 +26,17 @@ class FeatureContext implements Context
     public function __construct($hosts)
     {
         $hosts = json_decode($hosts, true);
-        foreach ($hosts as $key => $host) {
-            $wrapper = new Wrapper(
-                new \PDO('mysql:host=' . $host['host'] . ';port=' . $host['port'] . ';dbname=' . $host['dbname'] . ';charset=utf8',
-                    'root', ''), null
-            );
-            $wrapper->dbName = $host['dbname'];
-            $this->wrappers[$key] = $wrapper;
+        if (is_array($hosts) || is_object($hosts))
+        {
+            foreach ($hosts as $key => $host) {
+                $wrapper = new Wrapper(
+                    new \PDO('mysql:host=' . $host['host'] . ';port=' . $host['port'] . ';dbname=' . $host['dbname'] . ';charset=utf8',
+                        'root', ''), null);
+                $wrapper->dbName = $host['dbname'];
+                $this->wrappers[$key] = $wrapper;
+            }
         }
+
     }
 
     /**
@@ -111,9 +114,27 @@ class FeatureContext implements Context
      * @When Following records should be seen at table :arg1
      * @throws Exception
      */
-    public function followingRecordsShouldBeSeenAtTable(string $arg1, TableNode $table)
+    public function followingRecordsShouldBeSeenAtTable(string $tableName, TableNode $table)
     {
-        $arg1 = explode('.', $arg1);
+
+        $tableName = explode('.', $tableName);
+        $dbIndex = $tableName[1];
+        $tableName = $tableName[0];
+            $rows = $this->wrappers[$dbIndex]->query('SELECT * FROM `' . $tableName . '`');
+            $expectedRows = $table->getHash();
+            static::assertCount(count($rows), $expectedRows, $tableName . ' tablosundaki satır sayısı ile uyuşmuyor.');
+            foreach ($rows as $index => $row) {
+                $expectedRow = $expectedRows[$index];
+                foreach ($expectedRow as $expectedKey => $expectedValue) {
+                    $this->assertFormattedValue(
+                        $row[$expectedKey],
+                        $expectedKey,
+                        $expectedValue,
+                        ", key: $expectedKey\nexpectedRow:\n | " . implode(' | ', $expectedRow) . ' |'
+                    );
+                }
+            }
+        /*$arg1 = explode('.', $arg1);
         $dbIndex = $arg1[1];
         $arg1 = $arg1[1];
 
@@ -130,6 +151,6 @@ class FeatureContext implements Context
                     ", key: $expectedKey\nexpectedRow:\n | " . implode(' | ', $expectedRow) . ' |'
                 );
             }
-        }
+        }*/
     }
 }
